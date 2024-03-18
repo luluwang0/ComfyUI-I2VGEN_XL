@@ -32,7 +32,6 @@ class I2VGenXL_ModelLoader:
         }
 
     RETURN_TYPES = ("MODEL",)
-    RETURN_TXT = ("TXT",)
     RETURN_NAMES = ("pipe",)
     FUNCTION = "load_model"
     CATEGORY = "📽️I2VGenXL"
