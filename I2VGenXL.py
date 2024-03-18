@@ -58,7 +58,7 @@ class I2VGenXL_Generation:
             "required": {
                 "pipe": ("MODEL",),
                 "image": ("IMAGE",),
-                "positive": ("TXT",),
+                "positive": ("STRING",),
                 "negative": ("STRING", {
                     "default": "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms",
                     "multiline": True}),
