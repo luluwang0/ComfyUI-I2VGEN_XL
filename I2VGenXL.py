@@ -1,10 +1,3 @@
-'''
-@Project ：ComfyUI-I2VGEN_XL 
-@File    ：I2VGenXL.py
-@Author  ：Deer
-@Email   ：wanglu4@37.com
-@Date    ：2024/3/11 15:19 
-'''
 import os
 import cv2
 import torch
@@ -17,7 +10,6 @@ from diffusers import I2VGenXLPipeline
 
 current_directory = os.path.dirname(os.path.abspath(__file__))
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 class I2VGenXL_ModelLoader:
     def __init__(self):
@@ -34,16 +26,16 @@ class I2VGenXL_ModelLoader:
     RETURN_TYPES = ("MODEL",)
     RETURN_NAMES = ("pipe",)
     FUNCTION = "load_model"
-    CATEGORY = "📽️I2VGenXL"
+    CATEGORY = "📽️I2VGen-XL"
 
     def load_model(self, base_model_path):
         # Code to load the base model
         pipe = I2VGenXLPipeline.from_pretrained(
-            base_model_path
+            base_model_path,
+            torch_dtype=torch.float16,
+            variant="fp16"
         )
         pipe.enable_model_cpu_offload()
-        pipe.unet.enable_forward_chunking()
-
         return [pipe]
 
 
@@ -57,14 +49,12 @@ class I2VGenXL_Generation:
             "required": {
                 "pipe": ("MODEL",),
                 "image": ("IMAGE",),
-                "positive": ("STRING",),
-                "negative": ("STRING", {
-                    "default": "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms",
-                    "multiline": True}),
+                "positive": ("STRING", {"default": "Papers were floating in the air on a table in the library", "multiline": True}),
+                "negative": ("STRING", {"default": "Distorted, discontinuous, Ugly, blurry, low resolution, motionless, static, disfigured, disconnected limbs, Ugly faces, incomplete arms", "multiline": True}),
                 "steps": ("INT", {"default": 50, "min": 1, "max": 100, "step": 1}),
                 "guidance_scale": ("FLOAT", {"default": 9, "min": 0, "max": 10}),
-                "width": ("INT", {"default": 1280, "min": 512, "max": 2048, "step": 4}),
-                "height": ("INT", {"default": 704, "min": 512, "max": 2048, "step": 4}),
+                "width": ("INT", {"default": 1280, "min": 512, "max": 2048, "step": 32}),
+                "height": ("INT", {"default": 704, "min": 512, "max": 2048, "step": 32}),
                 "num_frames": ("INT", {"default": 16, "min": 1, "max": 100, "step": 1}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
@@ -72,13 +62,12 @@ class I2VGenXL_Generation:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "i2vgenxl_generate_image"
-    CATEGORY = "📽️I2VGenXL"
+    CATEGORY = "📽️I2VGen-XL"
 
-    def i2vgenxl_generate_image(self, image, pipe, positive, negative, steps, guidance_scale, seed, width, height,
-                                num_frames):
+    def i2vgenxl_generate_image(self, image, pipe, positive, negative, steps, guidance_scale, seed, width, height, num_frames):
+
         pil_images = []
         image_np = (255. * image.cpu().numpy().squeeze()).clip(0, 255).astype(np.uint8)
-
         pil_image = Image.fromarray(image_np)
         pil_images.append(pil_image)
 
@@ -95,7 +84,7 @@ class I2VGenXL_Generation:
             width=width,
             height=height,
             output_type="pt",
-        )
+            )
 
         video_tensor = output.frames
         video_nhwc = video_tensor[0].permute(0, 2, 3, 1)
@@ -103,7 +92,6 @@ class I2VGenXL_Generation:
         video_nhwc = video_nhwc[:-1]
 
         return (video_nhwc,)
-
 
 NODE_CLASS_MAPPINGS = {
     "I2VGenXL_ModelLoader": I2VGenXL_ModelLoader,
